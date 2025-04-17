@@ -1,0 +1,14 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "Alice"
+        },
+        {
+            "id": 1,
+            "name": "Jovo"
+        }
+    ],
+    "code": 200,
+    "msg": "success"
+}
