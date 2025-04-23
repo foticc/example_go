@@ -11,7 +11,13 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName(value = "{{.TableName.DbName}}")
-public class {{.TableName.CamelName}}Entity {
+public class {{.TableName.Pascal}}Entity {
 
+    {{range .Fields -}}
+    /**
+    * {{.FieldType.Comment}}
+    */
+    private {{.FieldType.Type}} {{.FieldName.Camel}};
+    {{end}}
    
 }

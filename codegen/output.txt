@@ -10,5 +10,33 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName(value = "df_station")
-public class 
+@TableName(value = "audit_demo")
+public class AuditDemoEntity {
+
+    /**
+    * id
+    */
+    private Long id;
+    /**
+    * 创建时间
+    */
+    private LocalDateTime createdDate;
+    /**
+    * 上次修改时间
+    */
+    private LocalDateTime lastModifiedDate;
+    /**
+    * 地址
+    */
+    private String address;
+    /**
+    * 创建人
+    */
+    private Long createdById;
+    /**
+    * 最后修改人
+    */
+    private Long lastModifiedById;
+    
+   
+}

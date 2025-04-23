@@ -12,11 +12,11 @@ func check(err error) {
 }
 
 func Generate() {
-	tpl, err := template.ParseFiles("E:\\work_go\\example_go\\codegen\\entity.tpl")
+	tpl, err := template.ParseFiles("D:\\go_work_space\\learn\\codegen\\entity.tpl")
 
 	check(err)
 
-	file, err := os.Create("E:\\work_go\\example_go\\codegen\\output.txt")
+	file, err := os.Create("D:\\go_work_space\\learn\\codegen\\output.txt")
 
 	check(err)
 	defer file.Close()

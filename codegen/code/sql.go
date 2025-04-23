@@ -14,7 +14,7 @@ var Db *sqlx.DB
 
 func init() {
 
-	database, err := sqlx.Open("mysql", "root:1@tcp(192.168.1.94:3306)/2")
+	database, err := sqlx.Open("mysql", "root:root123456@tcp(127.0.0.1:3306)/auth-admin")
 	if err != nil {
 		fmt.Println("open mysql failed,", err)
 		return
@@ -24,28 +24,30 @@ func init() {
 }
 
 type TableInfo struct {
-	TableName     string `db:"table_name"`
-	ColumnName    string `db:"column_name"`
-	IsNullable    string `db:"is_nullable"`
-	DataType      string `db:"data_type"`
-	Columntype    string `db:"column_type"`
-	ColumnComment string `db:"column_comment"`
+	TableName     string `db:"TABLE_NAME"`
+	ColumnName    string `db:"COLUMN_NAME"`
+	IsNullable    string `db:"IS_NULLABLE"`
+	DataType      string `db:"DATA_TYPE"`
+	Columntype    string `db:"COLUMN_TYPE"`
+	ColumnComment string `db:"COLUMN_COMMENT"`
 }
 
 type ModelInfo struct {
 	Package   string
 	TableName NameStyle
-	Columns   []ColumnInfo
+	Fields    []Field
 }
 
-type ColumnInfo struct {
-	ColumnName NameStyle
-	DataType   DataTypeWithLen
+type Field struct {
+	FieldName NameStyle
+	FieldType FieldTypeInfo
 }
 
-type DataTypeWithLen struct {
+type FieldTypeInfo struct {
 	DataType string
+	Type     string
 	Len      int
+	Comment  string
 }
 
 type NameStyle struct {
@@ -56,20 +58,23 @@ type NameStyle struct {
 }
 
 func ModelInfoFromTableInfo(tableInfo []TableInfo) ModelInfo {
-	columns := make([]ColumnInfo, len(tableInfo))
+	fields := make([]Field, len(tableInfo))
 	for i, v := range tableInfo {
-		columns[i].ColumnName.DbName = v.ColumnName
-		columns[i].ColumnName.Camel = CamelCase(v.ColumnName)
-		columns[i].ColumnName.Pascal = PascalCase(v.ColumnName)
-		columns[i].ColumnName.Snake = SnakeCase(v.ColumnName)
-		dataType := DataTypeWithLen{
-			DataType: v.DataType,
+		fields[i].FieldName.DbName = v.ColumnName
+		fields[i].FieldName.Camel = CamelCase(v.ColumnName)
+		fields[i].FieldName.Pascal = PascalCase(v.ColumnName)
+		fields[i].FieldName.Snake = SnakeCase(v.ColumnName)
+		dtype := strings.ToUpper(v.DataType)
+		fidleType := FieldTypeInfo{
+			DataType: dtype,
+			Type:     toRealType(dtype),
 			Len:      GetLen(v.Columntype),
+			Comment:  v.ColumnComment,
 		}
-		columns[i].DataType = dataType
+		fields[i].FieldType = fidleType
 	}
 	var modelInfo ModelInfo
-	modelInfo.Columns = columns
+	modelInfo.Fields = fields
 	modelInfo.TableName.DbName = tableInfo[0].TableName
 	modelInfo.TableName.Camel = CamelCase(tableInfo[0].TableName)
 	modelInfo.TableName.Pascal = PascalCase(tableInfo[0].TableName)
@@ -157,12 +162,35 @@ func SnakeCase(s string) string {
 	return string(runes)
 }
 
+var mapping = map[string][]string{
+	"Boolean":       {"BIT"},
+	"Integer":       {"TINYINT", "SMALLINT", "MEDIUMINT"},
+	"Long":          {"BIGINT"},
+	"Float":         {"FLOAT"},
+	"Double":        {"DOUBLE"},
+	"BigDecimal":    {"DECIMAL"},
+	"String":        {"CHAR", "VARCHAR"},
+	"LocalDateTime": {"DATETIME"},
+	"LocalDate":     {"DATE"},
+}
+
+func toRealType(datatype string) string {
+	reverseMap := make(map[string]string)
+	for key, values := range mapping {
+		for _, value := range values {
+			reverseMap[value] = key
+		}
+	}
+	return reverseMap[datatype]
+}
+
 func FetchModelInfo() ModelInfo {
 	var id []TableInfo
 	err := Db.Select(&id, `SELECT table_name,column_name,is_nullable,data_type,column_type,column_comment
 						FROM information_schema.COLUMNS
-						WHERE table_schema = 'db_ems_monitor'
-						AND table_name='df_station'`)
+						WHERE table_schema = 'auth-admin'
+						AND table_name='audit_demo'
+						ORDER BY  ORDINAL_POSITION`)
 	defer Db.Close()
 	if err != nil {
 		panic(err)
