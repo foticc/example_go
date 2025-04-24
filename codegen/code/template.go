@@ -1,26 +1,25 @@
 package code
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
-func check(err error) {
+func Generate(model ModelInfo, tplpath string, outpath string) error {
+	fmt.Println("Vaildating template file...")
+	tpl, err := template.ParseFiles(tplpath)
 	if err != nil {
-		panic(err)
+		return err
 	}
-}
-
-func Generate() {
-	tpl, err := template.ParseFiles("D:\\go_work_space\\learn\\codegen\\entity.tpl")
-
-	check(err)
-
-	file, err := os.Create("D:\\go_work_space\\learn\\codegen\\output.txt")
-
-	check(err)
+	os.Mkdir(filepath.Dir(outpath), 0777)
+	file, err := os.Create(outpath)
+	if err != nil {
+		return err
+	}
 	defer file.Close()
-	model := FetchModelInfo()
-	model.Package = "com.example.hha"
+	fmt.Println("Generating code...")
 	tpl.Execute(file, model)
+	return nil
 }

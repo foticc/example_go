@@ -10,19 +10,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var Db *sqlx.DB
-
-func init() {
-
-	database, err := sqlx.Open("mysql", "root:root123456@tcp(127.0.0.1:3306)/auth-admin")
-	if err != nil {
-		fmt.Println("open mysql failed,", err)
-		return
-	}
-
-	Db = database
-}
-
 type TableInfo struct {
 	TableName     string `db:"TABLE_NAME"`
 	ColumnName    string `db:"COLUMN_NAME"`
@@ -34,7 +21,7 @@ type TableInfo struct {
 
 type ModelInfo struct {
 	Package   string
-	TableName NameStyle
+	ModelName NameStyle
 	Fields    []Field
 }
 
@@ -75,10 +62,10 @@ func ModelInfoFromTableInfo(tableInfo []TableInfo) ModelInfo {
 	}
 	var modelInfo ModelInfo
 	modelInfo.Fields = fields
-	modelInfo.TableName.DbName = tableInfo[0].TableName
-	modelInfo.TableName.Camel = CamelCase(tableInfo[0].TableName)
-	modelInfo.TableName.Pascal = PascalCase(tableInfo[0].TableName)
-	modelInfo.TableName.Snake = SnakeCase(tableInfo[0].TableName)
+	modelInfo.ModelName.DbName = tableInfo[0].TableName
+	modelInfo.ModelName.Camel = CamelCase(tableInfo[0].TableName)
+	modelInfo.ModelName.Pascal = PascalCase(tableInfo[0].TableName)
+	modelInfo.ModelName.Snake = SnakeCase(tableInfo[0].TableName)
 	return modelInfo
 }
 
@@ -184,14 +171,13 @@ func toRealType(datatype string) string {
 	return reverseMap[datatype]
 }
 
-func FetchModelInfo() ModelInfo {
+func FetchModelInfo(db *sqlx.DB) ModelInfo {
 	var id []TableInfo
-	err := Db.Select(&id, `SELECT table_name,column_name,is_nullable,data_type,column_type,column_comment
+	err := db.Select(&id, `SELECT TABLE_NAME,COLUMN_NAME,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,COLUMN_COMMENT
 						FROM information_schema.COLUMNS
-						WHERE table_schema = 'auth-admin'
-						AND table_name='audit_demo'
+						WHERE table_schema = 'db_ems_monitor'
+						AND table_name='df_hotel'
 						ORDER BY  ORDINAL_POSITION`)
-	defer Db.Close()
 	if err != nil {
 		panic(err)
 	}
