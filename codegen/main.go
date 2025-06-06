@@ -95,6 +95,7 @@ func main() {
 		return nil
 	})
 	parameters := code.CustomParameters{
+		Schema:      param.Schema,
 		TableName:   param.Table,
 		ModelName:   param.Model,
 		PackageName: param.Pkg,

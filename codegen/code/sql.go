@@ -71,12 +71,12 @@ func ModelInfoFromTableInfo(tableInfo []TableInfo, params CustomParameters) Mode
 
 var mapping = map[string][]string{
 	"Boolean":       {"BIT"},
-	"Integer":       {"TINYINT", "SMALLINT", "MEDIUMINT"},
+	"Integer":       {"TINYINT", "SMALLINT", "MEDIUMINT", "INT"},
 	"Long":          {"BIGINT"},
 	"Float":         {"FLOAT"},
 	"Double":        {"DOUBLE"},
 	"BigDecimal":    {"DECIMAL"},
-	"String":        {"CHAR", "VARCHAR"},
+	"String":        {"CHAR", "VARCHAR", "JSON"},
 	"LocalDateTime": {"DATETIME"},
 	"LocalDate":     {"DATE"},
 }
@@ -92,6 +92,7 @@ func toRealType(datatype string) string {
 }
 
 type CustomParameters struct {
+	Schema      string
 	TableName   string
 	ModelName   string
 	PackageName string
@@ -101,9 +102,9 @@ func FetchModelInfo(db *sqlx.DB, params CustomParameters) ModelInfo {
 	var id []TableInfo
 	sql := fmt.Sprintf(`SELECT TABLE_NAME,COLUMN_NAME,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,COLUMN_COMMENT
 						FROM information_schema.COLUMNS
-						WHERE table_schema = 'db_ems_monitor'
+						WHERE table_schema = '%s'
 						AND table_name='%s'
-						ORDER BY  ORDINAL_POSITION`, params.TableName)
+						ORDER BY  ORDINAL_POSITION`, params.Schema, params.TableName)
 	err := db.Select(&id, sql)
 	if err != nil {
 		panic(err)
