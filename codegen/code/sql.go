@@ -53,7 +53,7 @@ func ModelInfoFromTableInfo(tableInfo []TableInfo, params CustomParameters) Mode
 		dtype := strings.ToUpper(v.DataType)
 		fidleType := FieldTypeInfo{
 			DataType: dtype,
-			Type:     toRealType(dtype),
+			Type:     toRealType(params.GenType, dtype),
 			Len:      utils.GetLen(v.Columntype),
 			Comment:  v.ColumnComment,
 		}
@@ -69,20 +69,32 @@ func ModelInfoFromTableInfo(tableInfo []TableInfo, params CustomParameters) Mode
 	return modelInfo
 }
 
-var mapping = map[string][]string{
+var javaMapping = map[string][]string{
 	"Boolean":       {"BIT"},
 	"Integer":       {"TINYINT", "SMALLINT", "MEDIUMINT", "INT"},
 	"Long":          {"BIGINT"},
 	"Float":         {"FLOAT"},
 	"Double":        {"DOUBLE"},
 	"BigDecimal":    {"DECIMAL"},
-	"String":        {"CHAR", "VARCHAR", "JSON"},
+	"String":        {"CHAR", "VARCHAR", "JSON", "TEXT"},
 	"LocalDateTime": {"DATETIME"},
 	"LocalDate":     {"DATE"},
 }
 
-func toRealType(datatype string) string {
+var tsMapping = map[string][]string{
+	"number":  {"TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL"},
+	"string":  {"CHAR", "VARCHAR", "JSON", "TEXT", "DATETIME", "DATE"},
+	"boolean": {"BIT"},
+}
+
+func toRealType(genType string, datatype string) string {
 	reverseMap := make(map[string]string)
+	var mapping map[string][]string
+	if genType == "java" {
+		mapping = javaMapping
+	} else {
+		mapping = tsMapping
+	}
 	for key, values := range mapping {
 		for _, value := range values {
 			reverseMap[value] = key
@@ -96,6 +108,7 @@ type CustomParameters struct {
 	TableName   string
 	ModelName   string
 	PackageName string
+	GenType     string
 }
 
 func FetchModelInfo(db *sqlx.DB, params CustomParameters) ModelInfo {

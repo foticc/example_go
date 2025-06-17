@@ -13,9 +13,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const templateDir = "templates"
-const outputDir = "output"
-
 var Db *sqlx.DB
 
 func initDataBase(param Params) {
@@ -31,13 +28,27 @@ func initDataBase(param Params) {
 }
 
 type Params struct {
-	Host   string
-	User   string
-	Pwd    string
-	Schema string
-	Table  string
-	Pkg    string
-	Model  string
+	Host        string
+	User        string
+	Pwd         string
+	Schema      string
+	Table       string
+	Pkg         string
+	Model       string
+	GenType     string
+	TemplateDir string
+	OutputDir   string
+}
+
+var supportGenType = []string{"java", "ts"}
+
+func contains(arr []string, target string) bool {
+	for _, value := range arr {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 var param = Params{}
@@ -50,9 +61,15 @@ func InitParams() error {
 	flag.StringVar(&param.Table, "table", "", "table of schema")
 	flag.StringVar(&param.Pkg, "pkg", "com.example", "package name")
 	flag.StringVar(&param.Model, "model", "Example", "model name")
+	flag.StringVar(&param.GenType, "lang", "java", "generate type name (java, ts)")
+	flag.StringVar(&param.TemplateDir, "templateDir", "templates", "template path")
+	flag.StringVar(&param.OutputDir, "outputDir", "output", "output path")
 	flag.Parse()
 	if param.Host == "" || param.User == "" || param.Pwd == "" || param.Schema == "" || param.Table == "" {
 		return errors.New("host, user, pwd, schema,table must be set")
+	}
+	if !contains(supportGenType, param.GenType) {
+		return errors.New("genType must be java or ts")
 	}
 	return nil
 }
@@ -65,10 +82,18 @@ func dirPath(filename string) string {
 	return filepath.Join(currentDirectory, filename)
 }
 
-func toOutputFilename(modulename string, fullpath string) string {
+func toOutputFilename(modulename string, fullpath string, param Params) string {
+	templateDir := param.TemplateDir
+	outputDir := param.OutputDir
 	newpath := strings.ReplaceAll(fullpath, templateDir, outputDir)
 	filename := filepath.Base(newpath)
-	newfilename := utils.PascalCase(modulename) + strings.TrimSuffix(filename, filepath.Ext(filename)) + ".java"
+	var prefix = ""
+	if param.GenType == "java" {
+		prefix = utils.PascalCase(modulename)
+	} else {
+		prefix = utils.CamelCase(modulename)
+	}
+	newfilename := prefix + strings.TrimSuffix(filename, filepath.Ext(filename)) + filepath.Ext(filename)
 	return filepath.Join(strings.ReplaceAll(newpath, filename, ""), newfilename)
 }
 
@@ -82,7 +107,7 @@ func main() {
 	initDataBase(param)
 	fmt.Println("Start code generation...", param)
 	// codegen.Generate()
-	templatePath := dirPath(templateDir)
+	templatePath := dirPath(param.TemplateDir)
 	files := []string{}
 	filepath.Walk(templatePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -99,11 +124,13 @@ func main() {
 		TableName:   param.Table,
 		ModelName:   param.Model,
 		PackageName: param.Pkg,
+		GenType:     param.GenType,
 	}
 	model := code.FetchModelInfo(Db, parameters)
 	fmt.Printf("ModelInfo: %+v\n", model)
+
 	for _, v := range files {
-		t := toOutputFilename(param.Model, v)
+		t := toOutputFilename(param.Model, v, param)
 		err := code.Generate(model, v, t)
 		if err != nil {
 			fmt.Println(err)
