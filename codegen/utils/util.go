@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -84,4 +85,26 @@ func SnakeCase(s string) string {
 		}
 	}
 	return string(runes)
+}
+
+// 全局编译正则表达式（避免重复编译）
+var (
+	camelCaseRegex         = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	nonAlphaNumericRegex   = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+	consecutiveDashesRegex = regexp.MustCompile(`-+`)
+)
+
+func KebabCase(s string) string {
+	s = camelCaseRegex.ReplaceAllString(s, "${1}-${2}")
+
+	s = nonAlphaNumericRegex.ReplaceAllString(s, "-")
+
+	s = strings.ToLower(s)
+
+	s = consecutiveDashesRegex.ReplaceAllString(s, "-")
+
+	// 步骤5: 移除首尾的连字符
+	s = strings.Trim(s, "-")
+
+	return s
 }

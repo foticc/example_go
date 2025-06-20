@@ -90,8 +90,10 @@ func toOutputFilename(modulename string, fullpath string, param Params) string {
 	var prefix = ""
 	if param.GenType == "java" {
 		prefix = utils.PascalCase(modulename)
+	} else if param.GenType == "ts" {
+		prefix = utils.KebabCase(modulename)
 	} else {
-		prefix = utils.CamelCase(modulename)
+		prefix = modulename
 	}
 	newfilename := prefix + strings.TrimSuffix(filename, filepath.Ext(filename)) + filepath.Ext(filename)
 	return filepath.Join(strings.ReplaceAll(newpath, filename, ""), newfilename)

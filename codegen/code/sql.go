@@ -16,6 +16,7 @@ type TableInfo struct {
 	DataType      string `db:"DATA_TYPE"`
 	Columntype    string `db:"COLUMN_TYPE"`
 	ColumnComment string `db:"COLUMN_COMMENT"`
+	ColumnKey     string `db:"COLUMN_KEY"`
 }
 
 type ModelInfo struct {
@@ -30,42 +31,53 @@ type Field struct {
 }
 
 type FieldTypeInfo struct {
-	DataType string
-	Type     string
-	Len      int
-	Comment  string
+	DataType   string
+	Type       string
+	Len        int
+	Comment    string
+	IsNullable bool
+	IsPrimary  bool
 }
 
 type NameStyle struct {
-	DbName string
-	Camel  string
-	Pascal string
-	Snake  string
+	DbName    string
+	Camel     string
+	Pascal    string
+	Snake     string
+	KebabCase string
 }
 
 func ModelInfoFromTableInfo(tableInfo []TableInfo, params CustomParameters) ModelInfo {
 	fields := make([]Field, len(tableInfo))
 	for i, v := range tableInfo {
-		fields[i].FieldName.DbName = v.ColumnName
-		fields[i].FieldName.Camel = utils.CamelCase(v.ColumnName)
-		fields[i].FieldName.Pascal = utils.PascalCase(v.ColumnName)
-		fields[i].FieldName.Snake = utils.SnakeCase(v.ColumnName)
-		dtype := strings.ToUpper(v.DataType)
-		fidleType := FieldTypeInfo{
-			DataType: dtype,
-			Type:     toRealType(params.GenType, dtype),
-			Len:      utils.GetLen(v.Columntype),
-			Comment:  v.ColumnComment,
+		fields[i].FieldName = NameStyle{
+			DbName:    v.ColumnName,
+			Camel:     utils.CamelCase(v.ColumnName),
+			Pascal:    utils.PascalCase(v.ColumnName),
+			Snake:     utils.SnakeCase(v.ColumnName),
+			KebabCase: utils.KebabCase(v.ColumnName),
 		}
-		fields[i].FieldType = fidleType
+		dtype := strings.ToUpper(v.DataType)
+		fields[i].FieldType = FieldTypeInfo{
+			DataType:   dtype,
+			Type:       toRealType(params.GenType, dtype),
+			Len:        utils.GetLen(v.Columntype),
+			Comment:    v.ColumnComment,
+			IsNullable: v.IsNullable == "YES",
+			IsPrimary:  v.ColumnKey == "PRI",
+		}
 	}
 	var modelInfo ModelInfo
 	modelInfo.Package = params.PackageName
 	modelInfo.Fields = fields
-	modelInfo.ModelName.DbName = tableInfo[0].TableName
-	modelInfo.ModelName.Camel = utils.CamelCase(params.ModelName)
-	modelInfo.ModelName.Pascal = utils.PascalCase(params.ModelName)
-	modelInfo.ModelName.Snake = utils.SnakeCase(params.ModelName)
+	modelInfo.ModelName = NameStyle{
+		DbName:    tableInfo[0].TableName,
+		Camel:     utils.CamelCase(params.ModelName),
+		Pascal:    utils.PascalCase(params.ModelName),
+		Snake:     utils.SnakeCase(params.ModelName),
+		KebabCase: utils.KebabCase(params.ModelName),
+	}
+
 	return modelInfo
 }
 
@@ -113,7 +125,7 @@ type CustomParameters struct {
 
 func FetchModelInfo(db *sqlx.DB, params CustomParameters) ModelInfo {
 	var id []TableInfo
-	sql := fmt.Sprintf(`SELECT TABLE_NAME,COLUMN_NAME,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,COLUMN_COMMENT
+	sql := fmt.Sprintf(`SELECT TABLE_NAME,COLUMN_NAME,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,COLUMN_COMMENT,COLUMN_KEY
 						FROM information_schema.COLUMNS
 						WHERE table_schema = '%s'
 						AND table_name='%s'
